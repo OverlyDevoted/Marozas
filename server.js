@@ -32,11 +32,17 @@ wsServer.on("request", request =>{
 
     })
     
-    const clientId = createGuid();
-    clients[clientId] = {
+    const clientID = createGuid();
+    clients[clientID] = {
         "connection":connection,
         "game":null
     };
+    let method = {
+        "method":"connect"
+    };
+    console.log(connection.state);
+    SendMessage(connection, "connect", {"clientID":clientID});
+    console.log(clientID);
 })
 
 function createGuid(){  
@@ -45,4 +51,7 @@ function createGuid(){
     }  
     return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();  
  }  
-
+function SendMessage(connection, methodName, payload){
+    connection.send(JSON.stringify({"name":methodName}));
+    connection.send(JSON.stringify(payload));
+}
