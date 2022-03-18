@@ -56,7 +56,7 @@ wsServer.on("request", request =>{
                     SendMessage(clients[clientID].connection, "error", {"message":"Game " + gameID + " does not exist"});
                     return;
                 }
-                if(game.clients.length > 4)
+                if(game.clients.length > 3)
                 {
                     console.log("lobby full");
                     SendMessage(clients[clientID].connection, "error", {"message":"Game " + gameID + " is full"});
@@ -66,7 +66,7 @@ wsServer.on("request", request =>{
                 game.clients.push({
                     "clientID":clientID,
                     "prio": game.clients.length,
-                    "ready": "false"
+                    "ready": false
                 })
                 games[gameID] = game;
                 game.clients.forEach(c =>{
@@ -91,21 +91,29 @@ wsServer.on("request", request =>{
                 {
                     const gameID = clients[clientID].game;
                     let game = games[gameID];
-                    
-                    game.clients.forEach(c =>{
-                        if(c.clientID == clientID)
+                    let length = game.clients.length;
+                    console.log(game.clients.length);
+                    console.log(length);
+                    for(i=0;i<length;i++)
+                    {
+                        console.log(i + " " + game.clients[i].clientID);
+                        if(game.clients[i].clientID == clientID)
                         {
-                            if(c.ready)
-                                c.ready = false;
+                            console.log(game.clients[i].ready);
+                            if(game.clients[i].ready)
+                                game.clients[i].ready = false;
                             else
-                                c.ready = true;
+                                game.clients[i].ready = true;
                         }
                         else
                         {
-                            SendMessage(clients[c.clientID].connection, "ready", {"clientID":clientID});
+                            SendMessage(clients[game.clients[i].clientID].connection, "ready", {"clientID":clientID});
                         }
-                    });
+                        console.log(game.clients[i].ready);
+                    }
+                    //console.log(game);
                     games[gameID] = game;
+                    StartGame(gameID);
                 }
                 break;
             default:
@@ -180,7 +188,31 @@ function createGuid(){
     }  
     return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();  
  }  
+function StartGame(gameID)
+{
+    let game = games[gameID];
+    if(!game)
+        return;
+    if(game.clients.length != 1)
+        return;
+    let isAllReady =true;
+    game.clients.forEach(c=>{
+        if(!c.ready)
+            isAllReady=false;
+    });
+    if(!isAllReady)
+        return;
+    console.log("Can start game");
+    SendToAllGameUsers(gameID, "startGame", {"empty":""});
+}
 function SendMessage(connection, methodName, payload){
     connection.send(JSON.stringify({"name":methodName}));
     connection.send(JSON.stringify(payload));
+}
+function SendToAllGameUsers(gameID, methodName, payLoad)
+{
+    let game = games[gameID];
+    game.clients.forEach(c=>{
+        SendMessage(clients[c.clientID].connection, methodName, payLoad);
+    });
 }
